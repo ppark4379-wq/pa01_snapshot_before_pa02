@@ -1,0 +1,27 @@
+---- CUDA files ----
+src/assignment_cuda.cu
+
+---- assignment_cuda.cu CUDA keywords ----
+8:__global__
+70:  cudaMalloc(&d_grid, grid_size);
+71:  cudaMalloc(&d_px, point_size);
+72:  cudaMalloc(&d_py, point_size);
+73:  cudaMalloc(&d_cx, cand_size);
+74:  cudaMalloc(&d_cy, cand_size);
+75:  cudaMalloc(&d_score, score_size);
+77:  cudaMemcpy(d_grid, grid.data(), grid_size, cudaMemcpyHostToDevice);
+78:  cudaMemcpy(d_px, px.data(), point_size, cudaMemcpyHostToDevice);
+79:  cudaMemcpy(d_py, py.data(), point_size, cudaMemcpyHostToDevice);
+80:  cudaMemcpy(d_cx, cx.data(), cand_size, cudaMemcpyHostToDevice);
+81:  cudaMemcpy(d_cy, cy.data(), cand_size, cudaMemcpyHostToDevice);
+86:  score_kernel_clean<<<blocks, threads>>>(
+92:  cudaDeviceSynchronize();
+94:  cudaMemcpy(score->data(), d_score, score_size, cudaMemcpyDeviceToHost);
+96:  cudaFree(d_grid);
+97:  cudaFree(d_px);
+98:  cudaFree(d_py);
+99:  cudaFree(d_cx);
+100:  cudaFree(d_cy);
+101:  cudaFree(d_score);
+
+---- fixed backend diff ----

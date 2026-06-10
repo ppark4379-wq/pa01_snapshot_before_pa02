@@ -1,0 +1,7 @@
+target,decision,reason,evidence,final_note
+MakeScans,Excluded from main optimization,Runtime ratio was small across W0-W2,L0/L2에서 약 0.7~1.0 ms 수준,주력 고속화 함수가 아니라 제외 근거로 사용
+MakeBounds,Excluded,Runtime was almost zero,W0-W2에서 약 0.001 ms 수준,최적화 대상으로 의미가 작음
+ToOut,Excluded,Runtime was almost zero,W0-W2에서 약 0.01 ms 수준,최적화 대상으로 의미가 작음
+Score stage direct modification,Rejected as PA02 main target,Score is dominated by fixed PA01 score_all CUDA backend,score_all.cpp와 assignment_cuda.cu를 수정하지 않는 전략 유지,PA01 재탕으로 보이지 않기 위해 직접 수정하지 않음
+Branch GPU offloading,Rejected by structure,Branch uses recursive pruning and tiny child candidate sets,작은 candidate 묶음은 CUDA overhead가 계산량보다 클 가능성,CPU direct scoring 선택
+MakeLowCands GPU offloading,Rejected by structure,Host-side candidate generation and vector allocation/copy cost,transfer/setup overhead가 더 클 가능성,CPU direct generation 선택

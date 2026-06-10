@@ -430,40 +430,21 @@ std::vector<FastMatcher::Cand> FastMatcher::MakeLowCands(
     const std::vector<Bounds>& bounds, const int depth) const {
   const int step = 1 << depth;
   std::vector<Cand> out;
-
-  // PA02 L2: MakeLowCands() used to call make_cand() for every scan,
-  // allocate temporary cx/cy vectors, and then copy those coordinates into
-  // Cand objects.  This function is a host-side candidate generation stage,
-  // so GPU offloading would add unnecessary transfer/setup overhead.  Instead,
-  // reserve the exact upper bound once and generate Cand objects directly.
-  size_t total_candidates = 0;
   for (size_t s = 0; s < bounds.size(); ++s) {
     if (bounds[s].min_x > bounds[s].max_x ||
         bounds[s].min_y > bounds[s].max_y) {
       continue;
     }
-    const int nx = (bounds[s].max_x - bounds[s].min_x) / step + 1;
-    const int ny = (bounds[s].max_y - bounds[s].min_y) / step + 1;
-    if (nx > 0 && ny > 0) {
-      total_candidates += static_cast<size_t>(nx) * static_cast<size_t>(ny);
-    }
-  }
-  out.reserve(total_candidates);
-
-  for (size_t s = 0; s < bounds.size(); ++s) {
-    if (bounds[s].min_x > bounds[s].max_x ||
-        bounds[s].min_y > bounds[s].max_y) {
-      continue;
-    }
-    for (int x = bounds[s].min_x; x <= bounds[s].max_x; x += step) {
-      for (int y = bounds[s].min_y; y <= bounds[s].max_y; y += step) {
-        Cand c;
-        c.scan = static_cast<int>(s);
-        c.x = x;
-        c.y = y;
-        c.score = 0.0f;
-        out.push_back(c);
-      }
+    std::vector<int> cx;
+    std::vector<int> cy;
+    make_cand(bounds[s].min_x, bounds[s].max_x, bounds[s].min_y,
+              bounds[s].max_y, step, &cx, &cy);
+    for (size_t i = 0; i < cx.size(); ++i) {
+      Cand c;
+      c.scan = static_cast<int>(s);
+      c.x = cx[i];
+      c.y = cy[i];
+      out.push_back(c);
     }
   }
   return out;
@@ -472,48 +453,6 @@ std::vector<FastMatcher::Cand> FastMatcher::MakeLowCands(
 void FastMatcher::Score(const Grid& grid, const std::vector<Scan>& scans,
                         std::vector<Cand>* const cand) const {
   if (cand == nullptr || cand->empty()) return;
-
-  // PA02 L1: Branch() creates very small child candidate sets, usually <= 4.
-  // Calling the fixed PA01 CUDA score_all backend for these tiny workloads is
-  // dominated by cudaMalloc/cudaMemcpy/kernel-launch overhead.  Keep the
-  // original score_all CUDA backend for large coarse scoring, but score tiny
-  // Branch child sets directly on CPU inside fast_matcher.cpp.
-  const int cpu_direct_threshold =
-      std::max(0, std::atoi(EnvOr("PA02_CPU_SCORE_THRESHOLD", "16").c_str()));
-  if (cpu_direct_threshold > 0 &&
-      static_cast<int>(cand->size()) <= cpu_direct_threshold) {
-    const size_t grid_size = static_cast<size_t>(grid.w) *
-                             static_cast<size_t>(grid.h);
-    for (Cand& c : *cand) {
-      c.score = 0.0f;
-      if (c.scan < 0 || c.scan >= static_cast<int>(scans.size()) ||
-          grid.w <= 0 || grid.h <= 0 || grid.cell.size() < grid_size) {
-        continue;
-      }
-      const Scan& scan = scans[c.scan];
-      const int p = static_cast<int>(
-          std::min(scan.x.size(), scan.y.size()));
-      if (p <= 0) continue;
-
-      int sum = 0;
-      for (int j = 0; j < p; ++j) {
-        const int x = scan.x[j] + c.x;
-        const int y = scan.y[j] + c.y;
-        if (x >= 0 && x < grid.w && y >= 0 && y < grid.h) {
-          sum += grid.cell[y * grid.w + x];
-        }
-      }
-      c.score = static_cast<float>(sum) /
-                (255.0f * static_cast<float>(p));
-    }
-
-    const Clock::time_point sort_t0 = Clock::now();
-    std::sort(cand->begin(), cand->end(),
-              [](const Cand& a, const Cand& b) { return a.score > b.score; });
-    g_pa02_profile.sort_ms += ElapsedMs(sort_t0, Clock::now());
-    return;
-  }
-
   for (size_t s = 0; s < scans.size(); ++s) {
     std::vector<int> ids;
     std::vector<int> cx;
