@@ -24,7 +24,7 @@ Branch() CPU direct scoring 선택의 타당성을 측정으로 증명.
 ### gpu_bench_partB_crossover_sweep.csv  
 - N=16~54621 sweep (실제 W0/W1/W2 포함)
 - CPU direct scoring vs GPU total/kernel 비교
-- 핵심 결과: crossover N≈1725 (보간)
+- 핵심 결과: N=1024까지 CPU 승, N=3840부터 GPU 승. 두 지점 사이에서 역전 (보간)
   - N<=1024: CPU 승 (N=16에서 GPU가 36.2x 느림, alloc overhead 79.5%)
   - N>=3840: GPU 승
 
