@@ -1,0 +1,5 @@
+tag,block_size,gpu_total_ms,gpu_kernel_ms,note
+C_block,64,6.7874,4.9203,
+C_block,128,6.7653,4.9196,best
+C_block,256,6.7907,4.9205,current_default
+C_block,512,6.8022,4.9237,
